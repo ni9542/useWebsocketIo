@@ -5,11 +5,11 @@
 
 ### Install
 ```
-npm install @socket/websocketio
+npm i n-websocketio
 ```
 或
 ```
-yarn add @socket/websocketio
+yarn add n-websocketio
 ```
 
 
