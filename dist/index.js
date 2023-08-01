@@ -1,23 +1,32 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.initWebsocket = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.WebsocketConfig = exports.isConnect = exports.websock = void 0;
+exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.initWebsocket = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.settinsConfig = exports.isConnect = exports.websock = void 0;
 /**
  * @description websocketIO
  */
 exports.websock = null;
 var rec;
 exports.isConnect = false;
-/**
- * @description websocket连接配置
- * websocketUrl 连接地址
- * timeout 保持心跳时间
- * heartObj 发送的心跳包数据
- */
-exports.WebsocketConfig = {
+var WebsocketConfig = {
     websocketUrl: "",
     timeout: 9000,
     heartObj: {}
 };
+/**
+ * @description websocket连接配置
+ * @param options 参数设置
+ * @param options.websocketUrl 必传参数，websocket地址
+ * @param options.heartObj 必传参数，websocket心跳发送对象
+ * @param options.timeout 可选，websocket心跳检查发送时间
+ */
+var settinsConfig = function (options) {
+    if (options) {
+        WebsocketConfig.websocketUrl = options.websocketUrl;
+        WebsocketConfig.timeout = options.timeout ? options.timeout : WebsocketConfig.timeout;
+        WebsocketConfig.heartObj = options.heartObj;
+    }
+};
+exports.settinsConfig = settinsConfig;
 var createWebsocket = function (callback) {
     try {
         (0, exports.initWebsocket)();
@@ -68,9 +77,9 @@ exports.closeWebsocket = closeWebsocket;
  * @param heartObj 心跳包发送数据
  */
 var heartCheck = {
-    timeout: exports.WebsocketConfig.timeout,
+    timeout: WebsocketConfig.timeout,
     timeoutObj: null,
-    heartObj: exports.WebsocketConfig.heartObj,
+    heartObj: WebsocketConfig.heartObj,
     start: function () {
         var that = this;
         this.timeoutObj = setInterval(function () {
@@ -96,9 +105,9 @@ var heartCheck = {
  * @description 初始化websocket
  */
 var initWebsocket = function () {
-    if (exports.WebsocketConfig.websocketUrl === '')
+    if (WebsocketConfig.websocketUrl === '')
         return console.log('websocket 连接地址未设置');
-    var URL = exports.WebsocketConfig.websocketUrl;
+    var URL = WebsocketConfig.websocketUrl;
     exports.websock = new WebSocket(URL);
     exports.websock.onopen = function (e) {
         exports.isConnect = true;

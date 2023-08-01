@@ -3,17 +3,19 @@
  */
 export declare let websock: any;
 export declare let isConnect: boolean;
+interface SettinsConfigType {
+    websocketUrl: string;
+    timeout?: number;
+    heartObj: any;
+}
 /**
  * @description websocket连接配置
- * websocketUrl 连接地址
- * timeout 保持心跳时间
- * heartObj 发送的心跳包数据
+ * @param options 参数设置
+ * @param options.websocketUrl 必传参数，websocket地址
+ * @param options.heartObj 必传参数，websocket心跳发送对象
+ * @param options.timeout 可选，websocket心跳检查发送时间
  */
-export declare const WebsocketConfig: {
-    websocketUrl: string;
-    timeout: number;
-    heartObj: {};
-};
+export declare const settinsConfig: (options: SettinsConfigType) => void;
 export declare const createWebsocket: (callback?: (isConnect: boolean) => any) => void;
 /**
  * @description websocket 重连方法
@@ -39,3 +41,4 @@ export declare const sendMsg: (data: any) => void;
  * @param callback (e:any) => any
  */
 export declare const onMessage: (callback: (e: any) => any) => void;
+export {};

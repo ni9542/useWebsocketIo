@@ -5,16 +5,29 @@ export let websock: any = null
 let rec: any;
 export let isConnect = false
 
-/**
- * @description websocket连接配置
- * websocketUrl 连接地址
- * timeout 保持心跳时间
- * heartObj 发送的心跳包数据
- */
-export const WebsocketConfig = {
+interface SettinsConfigType {
+  websocketUrl: string
+  timeout?: number
+  heartObj: any
+}
+const WebsocketConfig: SettinsConfigType = {
   websocketUrl: "",
   timeout: 9000,
   heartObj: {}
+}
+/**
+ * @description websocket连接配置
+ * @param options 参数设置
+ * @param options.websocketUrl 必传参数，websocket地址
+ * @param options.heartObj 必传参数，websocket心跳发送对象
+ * @param options.timeout 可选，websocket心跳检查发送时间
+ */
+export const settinsConfig = (options: SettinsConfigType) => {
+  if(options) {
+    WebsocketConfig.websocketUrl = options.websocketUrl
+    WebsocketConfig.timeout = options.timeout ? options.timeout : WebsocketConfig.timeout
+    WebsocketConfig.heartObj = options.heartObj
+  }
 }
 
 export const createWebsocket = (callback?: (isConnect: boolean) => any) => {
