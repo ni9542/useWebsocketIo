@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "ES5",  //打包成es5
+    "module": "commonjs",  // 用什么模块的规范 这里用node的commonjs规范
+    "declaration": true,     // 可根据项目打包成相应的规范
+    "sourceMap": true,     // 方便排错
+    "outDir": "./dist",   // 打包完成存放的目录
+  }
+}
