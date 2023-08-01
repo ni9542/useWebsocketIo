@@ -5,11 +5,11 @@
 
 ### Install
 ```
-npm i n-websocketio
+npm i use-wsio
 ```
 或
 ```
-yarn add n-websocketio
+yarn add use-wsio
 ```
 
 

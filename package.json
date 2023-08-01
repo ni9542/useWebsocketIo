@@ -1,7 +1,8 @@
 {
-  "name": "n-websocketio",
-  "version": "1.0.1",
+  "name": "use-wsio",
+  "version": "1.0.2",
   "description": "websocket封装方法",
+  "keywords": ["websocket", "websocketio"],
   "main": "src/index.ts",
   "module": "dist/index.js",
   "types" :"dist/index.d.ts",
