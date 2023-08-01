@@ -3,19 +3,6 @@
  */
 export declare let websock: any;
 export declare let isConnect: boolean;
-interface SettinsConfigType {
-    websocketUrl: string;
-    timeout?: number;
-    heartObj: any;
-}
-/**
- * @description websocket连接配置
- * @param options 参数设置
- * @param options.websocketUrl 必传参数，websocket地址
- * @param options.heartObj 必传参数，websocket心跳发送对象
- * @param options.timeout 可选，websocket心跳检查发送时间
- */
-export declare const settinsConfig: (options: SettinsConfigType) => void;
 export declare const createWebsocket: (callback?: (isConnect: boolean) => any) => void;
 /**
  * @description websocket 重连方法
@@ -27,9 +14,34 @@ export declare const reConnect: (callback?: (e: any) => any) => void;
  */
 export declare const closeWebsocket: () => void;
 /**
+ * @description 心跳设置类型
+ */
+interface HeartType {
+    timeout?: number;
+    heartObj: {
+        [key: string]: string | number | any;
+    };
+}
+/**
+ * @description websocket连接配置
+ * @param options 参数设置
+ * @param options.websocketUrl 必传参数，websocket地址
+ * @param options.heartObj 必传参数，websocket心跳发送对象
+ * @param options.timeout 可选，websocket心跳检查发送时间
+ */
+interface SettinsConfigType {
+    websocketUrl: string;
+}
+export declare const settinsConfig: (options: SettinsConfigType & HeartType) => void;
+export declare const getSettinsConfig: () => SettinsConfigType & HeartType;
+/**
  * @description 初始化websocket
  */
 export declare const initWebsocket: () => void;
+/**
+ * @description 返回错误日志
+ * @param callback （e:any） => any
+ */
 export declare const abnormalClose: (callback: (e: any) => any) => void;
 /**
  * @description websocket send 发送消息

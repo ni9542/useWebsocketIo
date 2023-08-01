@@ -1,32 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.initWebsocket = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.settinsConfig = exports.isConnect = exports.websock = void 0;
+exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.initWebsocket = exports.getSettinsConfig = exports.settinsConfig = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.isConnect = exports.websock = void 0;
 /**
  * @description websocketIO
  */
 exports.websock = null;
 var rec;
 exports.isConnect = false;
-var WebsocketConfig = {
-    websocketUrl: "",
-    timeout: 9000,
-    heartObj: {}
-};
-/**
- * @description websocket连接配置
- * @param options 参数设置
- * @param options.websocketUrl 必传参数，websocket地址
- * @param options.heartObj 必传参数，websocket心跳发送对象
- * @param options.timeout 可选，websocket心跳检查发送时间
- */
-var settinsConfig = function (options) {
-    if (options) {
-        WebsocketConfig.websocketUrl = options.websocketUrl;
-        WebsocketConfig.timeout = options.timeout ? options.timeout : WebsocketConfig.timeout;
-        WebsocketConfig.heartObj = options.heartObj;
-    }
-};
-exports.settinsConfig = settinsConfig;
 var createWebsocket = function (callback) {
     try {
         (0, exports.initWebsocket)();
@@ -77,9 +57,9 @@ exports.closeWebsocket = closeWebsocket;
  * @param heartObj 心跳包发送数据
  */
 var heartCheck = {
-    timeout: WebsocketConfig.timeout,
+    timeout: 9000,
     timeoutObj: null,
-    heartObj: WebsocketConfig.heartObj,
+    heartObj: {},
     start: function () {
         var that = this;
         this.timeoutObj = setInterval(function () {
@@ -101,6 +81,25 @@ var heartCheck = {
         clearInterval(this.timeoutObj);
     }
 };
+var WebsocketConfig = {
+    websocketUrl: "",
+};
+var settinsConfig = function (options) {
+    if (options) {
+        WebsocketConfig.websocketUrl = options.websocketUrl;
+        heartCheck.timeout = options.timeout ? options.timeout : 9000;
+        heartCheck.heartObj = options.heartObj;
+    }
+};
+exports.settinsConfig = settinsConfig;
+var getSettinsConfig = function () {
+    return {
+        websocketUrl: WebsocketConfig.websocketUrl,
+        timeout: heartCheck.timeout,
+        heartObj: heartCheck.heartObj
+    };
+};
+exports.getSettinsConfig = getSettinsConfig;
 /**
  * @description 初始化websocket
  */
@@ -120,6 +119,10 @@ var initWebsocket = function () {
     };
 };
 exports.initWebsocket = initWebsocket;
+/**
+ * @description 返回错误日志
+ * @param callback （e:any） => any
+ */
 var abnormalClose = function (callback) {
     exports.websock.onclose = function (e) {
         if (typeof callback === 'function') {
