@@ -12,4 +12,7 @@ npm i use-wsio
 yarn add use-wsio
 ```
 
+### 参数设置
+settinsConfig
+
 

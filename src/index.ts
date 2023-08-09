@@ -65,19 +65,13 @@ interface HeartCheckType extends HeartType{
  * @param heartObj 心跳包发送数据
  */
 const heartCheck: HeartCheckType = {
-  timeout: 9000, // 每一段时间发送一次心跳包，默认9秒
+  timeout: 3000, // 每一段时间发送一次心跳包，默认3秒
   timeoutObj: null, // 延时对象
   heartObj: {}, // 心跳发送对象
 
   start: function() {
     let that = this
     this.timeoutObj = setInterval(function () {
-      if(websock.readyState !== 1) {
-        that.stop()
-        isConnect = false
-        reConnect()
-        return
-      }
       if(isConnect) sendMsg(that.heartObj)
     }, this.timeout)
   },
@@ -130,10 +124,17 @@ export const initWebsocket = () => {
     isConnect = true
     heartCheck.start()
   }
-  // 连接发生错误的回调方法
+}
+/**
+ * 连接发生错误的回调方法
+ * @param callback (e:T) => T
+ * @constructor
+ */
+export const OnError = <T,>(callback:(e: T) => T): T | {error: string} => {
+  if(typeof callback !== 'function') return {error: 'callback not function'};
   websock.onerror = (e) => {
     isConnect = false
-    reConnect()
+    return callback(e)
   }
 }
 /**
@@ -157,7 +158,6 @@ export const sendMsg = (data:any) => {
   }
   let _d = JSON.stringify(data)
   websock.send(_d)
-
 }
 
 /**

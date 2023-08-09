@@ -39,6 +39,14 @@ export declare const getSettinsConfig: () => SettinsConfigType & HeartType;
  */
 export declare const initWebsocket: () => void;
 /**
+ * 连接发生错误的回调方法
+ * @param callback (e:T) => T
+ * @constructor
+ */
+export declare const OnError: <T>(callback: (e: T) => T) => T | {
+    error: string;
+};
+/**
  * @description 返回错误日志
  * @param callback （e:any） => any
  */

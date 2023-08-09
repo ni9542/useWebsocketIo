@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.initWebsocket = exports.getSettinsConfig = exports.settinsConfig = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.isConnect = exports.websock = void 0;
+exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.OnError = exports.initWebsocket = exports.getSettinsConfig = exports.settinsConfig = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.isConnect = exports.websock = void 0;
 /**
  * @description websocketIO
  */
@@ -57,18 +57,12 @@ exports.closeWebsocket = closeWebsocket;
  * @param heartObj 心跳包发送数据
  */
 var heartCheck = {
-    timeout: 9000,
+    timeout: 3000,
     timeoutObj: null,
     heartObj: {},
     start: function () {
         var that = this;
         this.timeoutObj = setInterval(function () {
-            if (exports.websock.readyState !== 1) {
-                that.stop();
-                exports.isConnect = false;
-                (0, exports.reConnect)();
-                return;
-            }
             if (exports.isConnect)
                 (0, exports.sendMsg)(that.heartObj);
         }, this.timeout);
@@ -112,13 +106,22 @@ var initWebsocket = function () {
         exports.isConnect = true;
         heartCheck.start();
     };
-    // 连接发生错误的回调方法
-    exports.websock.onerror = function (e) {
-        exports.isConnect = false;
-        (0, exports.reConnect)();
-    };
 };
 exports.initWebsocket = initWebsocket;
+/**
+ * 连接发生错误的回调方法
+ * @param callback (e:T) => T
+ * @constructor
+ */
+var OnError = function (callback) {
+    if (typeof callback !== 'function')
+        return { error: 'callback not function' };
+    exports.websock.onerror = function (e) {
+        exports.isConnect = false;
+        return callback(e);
+    };
+};
+exports.OnError = OnError;
 /**
  * @description 返回错误日志
  * @param callback （e:any） => any
