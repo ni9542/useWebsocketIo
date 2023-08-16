@@ -1,6 +1,6 @@
 {
   "name": "use-wsio",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "websocket封装方法, 提供封装工具类方法，具体逻辑请自行构建。",
   "keywords": ["websocket", "websocketio"],
   "main": "src/index.ts",

@@ -1,173 +1,193 @@
 /**
- * @description websocketIO
+ * websocket 封装
  */
-export let websock: any = null
-let rec: any;
-export let isConnect = false
 
-export const createWebsocket = (callback?: (isConnect: boolean) => any) => {
+let websock: WebSocket | any
+let rec: any
+let isConnect: boolean = false
+
+interface ConfigMustType {
+  heartbeatData: unknown
+  websocketURL: string
+}
+
+interface ConfigSelectableType extends ConfigMustType {
+  timeout?: number
+  maxReconnectionNum?: number
+  reconnectionTime?: number
+}
+
+const config = <ConfigSelectableType & { timeObject: any, reconnectionNum: number }>{
+  timeout: 3000,
+  heartbeatData: {},
+  timeObject: null,
+  reconnectionNum: 0,
+  reconnectionTime: 5000,
+  maxReconnectionNum: 5,
+  websocketURL: ''
+}
+
+/**
+ * @description 返回websocket连接状态
+ */
+export function getIsConnect() {
+  return isConnect
+}
+
+/**
+ * @description 初始化基本配置
+ * @param option
+ * @constructor
+ */
+export function SettingsConfig(option: ConfigSelectableType) {
+  if (!option) return new Error('该方法必须有配置参数')
+  config.websocketURL = option.websocketURL
+  config.heartbeatData = option.heartbeatData
+  config.timeout = option.timeout ? option.timeout : 3000
+  config.maxReconnectionNum = option.maxReconnectionNum ? option.maxReconnectionNum : 5
+  config.reconnectionTime = option.reconnectionTime ? option.reconnectionTime : 5000
+}
+
+/**
+ * @description 初始化websocket
+ * @param callback
+ * @constructor
+ */
+export function CreateWebsocket(callback?: (isconnect: boolean) => void) {
+  if (callback && typeof callback !== 'function') return new Error('cuowu')
   try {
-    initWebsocket()
-  }catch (e) {
-    console.log('创建连接失败')
-    reConnect() // 创建失败，重新连接
+    InitWebsocket((type) => {
+      if (callback) {
+        callback(type)
+      }
+    })
+  } catch (e) {
+    console.log('尝试连接失败，重连')
+    Reconnection()
   }
-  if(callback && typeof callback === 'function') {
-    setTimeout(() => {
-      callback(isConnect)
-    }, 500)
-  }
-}
-/**
- * @description websocket 重连方法
- * @param callback (e) => boolean 连接是否成功
- */
-export const reConnect = (callback?:(e:any) => any) => {
-  if(isConnect) return; // 已连接就不重连
-  rec && clearTimeout(rec);
-  rec = setTimeout(() => {
-    if(callback && typeof callback === 'function') {
-      createWebsocket((e) => {
-        callback(e)
-      })
-    }else{
-      createWebsocket()
-    }
-  }, 3000)
 }
 
 /**
- * @description websocket关闭连接
+ * @description 创建websocket连接
+ * @param callback
+ * @constructor
  */
-export const closeWebsocket = () => {
+export function InitWebsocket(callback?: (isconnect: boolean) => void) {
+  if (config.websocketURL === '') return console.log('未设置连接地址')
+  websock = new WebSocket(config.websocketURL)
+  websock.onopen = () => {
+    isConnect = true
+    HeartStart()
+    if (callback && typeof callback === 'function') {
+      callback(isConnect)
+    }
+  }
+  websock.onerror = () => {
+    // 不是正常关闭, 就重连
+    Reconnection()
+  }
+}
+
+/**
+ * @description 重连
+ * @constructor
+ */
+export function Reconnection() {
+  if (isConnect) return; //已经连上，就不再重连
+  rec && clearTimeout(rec)
+  rec = setTimeout(() => {
+    if (config.reconnectionNum >= (config.maxReconnectionNum as number)) {// 最大重连次数
+      clearTimeout(rec)
+      isConnect = false
+      HeartStop()
+      return;
+    }
+    config.reconnectionNum++
+    CreateWebsocket()
+  }, config.reconnectionTime)
+}
+
+/**
+ * @description 正常关闭连接
+ * @constructor
+ */
+export function CloseWebsocket() {
   isConnect = false
-  heartCheck.stop()
   websock.close(1000)
 }
 
 /**
- * @description 心跳设置类型
- */
-interface HeartType {
-  timeout?: number
-  heartObj: {[key:string]: string | number | any}
-}
-interface HeartCheckType extends HeartType{
-  timeoutObj: any,
-  start: () => void
-  reset: () => void
-  stop: () => void
-}
-
-/**
- * @description websocket心跳设置
- * @param timeout 心跳包时间，默认9000
- * @param heartObj 心跳包发送数据
- */
-const heartCheck: HeartCheckType = {
-  timeout: 3000, // 每一段时间发送一次心跳包，默认3秒
-  timeoutObj: null, // 延时对象
-  heartObj: {}, // 心跳发送对象
-
-  start: function() {
-    let that = this
-    this.timeoutObj = setInterval(function () {
-      if(isConnect) sendMsg(that.heartObj)
-    }, this.timeout)
-  },
-
-  reset: function () {
-    clearInterval(this.timeoutObj)
-    this.start()
-  },
-
-  stop: function () {
-    clearInterval(this.timeoutObj)
-  }
-}
-
-/**
- * @description websocket连接配置
- * @param options 参数设置
- * @param options.websocketUrl 必传参数，websocket地址
- * @param options.heartObj 必传参数，websocket心跳发送对象
- * @param options.timeout 可选，websocket心跳检查发送时间
- */
-interface SettinsConfigType {
-  websocketUrl: string
-}
-const WebsocketConfig: SettinsConfigType = {
-  websocketUrl: "",
-}
-export const settinsConfig = (options: SettinsConfigType & HeartType) => {
-  if(options) {
-    WebsocketConfig.websocketUrl = options.websocketUrl
-    heartCheck.timeout = options.timeout ? options.timeout : 9000
-    heartCheck.heartObj = options.heartObj
-  }
-}
-export const getSettinsConfig = (): SettinsConfigType & HeartType => {
-  return {
-    websocketUrl: WebsocketConfig.websocketUrl,
-    timeout: heartCheck.timeout,
-    heartObj: heartCheck.heartObj
-  }
-}
-/**
- * @description 初始化websocket
- */
-export const initWebsocket = () => {
-  if(WebsocketConfig.websocketUrl === '') return console.log('websocket 连接地址未设置')
-  const URL: string = WebsocketConfig.websocketUrl
-  websock = new WebSocket(URL)
-  websock.onopen = (e) => {
-    isConnect = true
-    heartCheck.start()
-  }
-}
-/**
- * 连接发生错误的回调方法
- * @param callback (e:T) => T
+ * @description 发送消息
+ * @param data
  * @constructor
  */
-export const OnError = <T,>(callback:(e: T) => T): T | {error: string} => {
-  if(typeof callback !== 'function') return {error: 'callback not function'};
-  websock.onerror = (e) => {
-    isConnect = false
-    return callback(e)
-  }
-}
-/**
- * @description 返回错误日志
- * @param callback （e:any） => any
- */
-export const abnormalClose = (callback: (e: any) => any) => {
-  websock.onclose = (e) => {
-    if(typeof callback === 'function') {
-      callback(e)
-    }
-  }
-}
-/**
- * @description websocket send 发送消息
- * @param data any
- */
-export const sendMsg = (data:any) => {
-  if(websock.readyState !== 1 || !isConnect) {
-    return;
-  }
+export function SendMsg<T, >(data: T) {
+  if (!data || data === undefined || data === '') return new Error('发送消息数据必须为真值')
   let _d = JSON.stringify(data)
-  websock.send(_d)
+  if (websock.readyState == websock.OPEN) {
+    websock.send(_d)
+  } else if (websock.readyState === websock.CONNECTING) {
+    // 连接正在开启状态时，则等待1s后发送
+    setTimeout(() => {
+      SendMsg(_d)
+    }, 1500)
+  } else {
+    // 未开启，等待2s后重新调用
+    setTimeout(() => {
+      SendMsg(_d)
+    }, 2000)
+  }
 }
 
 /**
- * @description 监听websocket message消息
- * @param callback (e:any) => any
+ * @description 监听message消息返回
+ * @param callback
+ * @constructor
  */
-export const onMessage = (callback: (e: any) => any) => {
-  if(typeof callback === 'function') {
-    websock.onmessage = (e: any) => {
-      callback(e)
-    }
+export function OnSocMessage(callback: (msg: any) => any) {
+  if (typeof callback !== 'function') return new Error('返回值必须是一个方法')
+  websock.onmessage = (msg: MessageEvent) => {
+    let _d = JSON.parse(msg.data)
+    HeartReset()
+    callback(_d)
   }
+}
+
+/**
+ * @description 监听连接错误消息
+ * @param callback
+ * @constructor
+ */
+export function OnCloseMsg(callback: (msg: unknown) => unknown) {
+  if (typeof callback !== 'function') return new Error('返回值必须是一个方法')
+  websock.onclose = (e: unknown) => {
+    callback(e)
+  }
+}
+
+/**
+ * @description 开启心跳
+ * @constructor
+ */
+export function HeartStart() {
+  config.timeObject = setInterval(() => {
+    if (isConnect) websock.send(JSON.stringify(config.heartbeatData))
+  }, config.timeout)
+}
+
+/**
+ * @description 重置心跳
+ * @constructor
+ */
+export function HeartReset() {
+  clearInterval(config.timeObject)
+  HeartStart()
+}
+
+/**
+ * @description 关闭心跳
+ * @constructor
+ */
+export function HeartStop() {
+  clearInterval(config.timeObject)
 }

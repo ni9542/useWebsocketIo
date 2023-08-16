@@ -1,161 +1,195 @@
 "use strict";
+/**
+ * websocket 封装
+ */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onMessage = exports.sendMsg = exports.abnormalClose = exports.OnError = exports.initWebsocket = exports.getSettinsConfig = exports.settinsConfig = exports.closeWebsocket = exports.reConnect = exports.createWebsocket = exports.isConnect = exports.websock = void 0;
-/**
- * @description websocketIO
- */
-exports.websock = null;
+exports.HeartStop = exports.HeartReset = exports.HeartStart = exports.OnCloseMsg = exports.OnSocMessage = exports.SendMsg = exports.CloseWebsocket = exports.Reconnection = exports.InitWebsocket = exports.CreateWebsocket = exports.SettingsConfig = exports.getIsConnect = void 0;
+var websock;
 var rec;
-exports.isConnect = false;
-var createWebsocket = function (callback) {
-    try {
-        (0, exports.initWebsocket)();
-    }
-    catch (e) {
-        console.log('创建连接失败');
-        (0, exports.reConnect)(); // 创建失败，重新连接
-    }
-    if (callback && typeof callback === 'function') {
-        setTimeout(function () {
-            callback(exports.isConnect);
-        }, 500);
-    }
-};
-exports.createWebsocket = createWebsocket;
-/**
- * @description websocket 重连方法
- * @param callback (e) => boolean 连接是否成功
- */
-var reConnect = function (callback) {
-    if (exports.isConnect)
-        return; // 已连接就不重连
-    rec && clearTimeout(rec);
-    rec = setTimeout(function () {
-        if (callback && typeof callback === 'function') {
-            (0, exports.createWebsocket)(function (e) {
-                callback(e);
-            });
-        }
-        else {
-            (0, exports.createWebsocket)();
-        }
-    }, 3000);
-};
-exports.reConnect = reConnect;
-/**
- * @description websocket关闭连接
- */
-var closeWebsocket = function () {
-    exports.isConnect = false;
-    heartCheck.stop();
-    exports.websock.close(1000);
-};
-exports.closeWebsocket = closeWebsocket;
-/**
- * @description websocket心跳设置
- * @param timeout 心跳包时间，默认9000
- * @param heartObj 心跳包发送数据
- */
-var heartCheck = {
+var isConnect = false;
+var config = {
     timeout: 3000,
-    timeoutObj: null,
-    heartObj: {},
-    start: function () {
-        var that = this;
-        this.timeoutObj = setInterval(function () {
-            if (exports.isConnect)
-                (0, exports.sendMsg)(that.heartObj);
-        }, this.timeout);
-    },
-    reset: function () {
-        clearInterval(this.timeoutObj);
-        this.start();
-    },
-    stop: function () {
-        clearInterval(this.timeoutObj);
-    }
+    heartbeatData: {},
+    timeObject: null,
+    reconnectionNum: 0,
+    reconnectionTime: 5000,
+    maxReconnectionNum: 5,
+    websocketURL: ''
 };
-var WebsocketConfig = {
-    websocketUrl: "",
-};
-var settinsConfig = function (options) {
-    if (options) {
-        WebsocketConfig.websocketUrl = options.websocketUrl;
-        heartCheck.timeout = options.timeout ? options.timeout : 9000;
-        heartCheck.heartObj = options.heartObj;
-    }
-};
-exports.settinsConfig = settinsConfig;
-var getSettinsConfig = function () {
-    return {
-        websocketUrl: WebsocketConfig.websocketUrl,
-        timeout: heartCheck.timeout,
-        heartObj: heartCheck.heartObj
-    };
-};
-exports.getSettinsConfig = getSettinsConfig;
 /**
- * @description 初始化websocket
+ * @description 返回websocket连接状态
  */
-var initWebsocket = function () {
-    if (WebsocketConfig.websocketUrl === '')
-        return console.log('websocket 连接地址未设置');
-    var URL = WebsocketConfig.websocketUrl;
-    exports.websock = new WebSocket(URL);
-    exports.websock.onopen = function (e) {
-        exports.isConnect = true;
-        heartCheck.start();
-    };
-};
-exports.initWebsocket = initWebsocket;
+function getIsConnect() {
+    return isConnect;
+}
+exports.getIsConnect = getIsConnect;
 /**
- * 连接发生错误的回调方法
- * @param callback (e:T) => T
+ * @description 初始化基本配置
+ * @param option
  * @constructor
  */
-var OnError = function (callback) {
-    if (typeof callback !== 'function')
-        return { error: 'callback not function' };
-    exports.websock.onerror = function (e) {
-        exports.isConnect = false;
-        return callback(e);
-    };
-};
-exports.OnError = OnError;
+function SettingsConfig(option) {
+    if (!option)
+        return new Error('该方法必须有配置参数');
+    config.websocketURL = option.websocketURL;
+    config.heartbeatData = option.heartbeatData;
+    config.timeout = option.timeout ? option.timeout : 3000;
+    config.maxReconnectionNum = option.maxReconnectionNum ? option.maxReconnectionNum : 5;
+    config.reconnectionTime = option.reconnectionTime ? option.reconnectionTime : 5000;
+}
+exports.SettingsConfig = SettingsConfig;
 /**
- * @description 返回错误日志
- * @param callback （e:any） => any
+ * @description 初始化websocket
+ * @param callback
+ * @constructor
  */
-var abnormalClose = function (callback) {
-    exports.websock.onclose = function (e) {
-        if (typeof callback === 'function') {
-            callback(e);
+function CreateWebsocket(callback) {
+    if (callback && typeof callback !== 'function')
+        return new Error('cuowu');
+    try {
+        InitWebsocket(function (type) {
+            if (callback) {
+                callback(type);
+            }
+        });
+    }
+    catch (e) {
+        console.log('尝试连接失败，重连');
+        Reconnection();
+    }
+}
+exports.CreateWebsocket = CreateWebsocket;
+/**
+ * @description 创建websocket连接
+ * @param callback
+ * @constructor
+ */
+function InitWebsocket(callback) {
+    if (config.websocketURL === '')
+        return console.log('未设置连接地址');
+    websock = new WebSocket(config.websocketURL);
+    websock.onopen = function () {
+        isConnect = true;
+        HeartStart();
+        if (callback && typeof callback === 'function') {
+            callback(isConnect);
         }
     };
-};
-exports.abnormalClose = abnormalClose;
+    websock.onerror = function () {
+        // 不是正常关闭, 就重连
+        Reconnection();
+    };
+}
+exports.InitWebsocket = InitWebsocket;
 /**
- * @description websocket send 发送消息
- * @param data any
+ * @description 重连
+ * @constructor
  */
-var sendMsg = function (data) {
-    if (exports.websock.readyState !== 1 || !exports.isConnect) {
-        return;
-    }
+function Reconnection() {
+    if (isConnect)
+        return; //已经连上，就不再重连
+    rec && clearTimeout(rec);
+    rec = setTimeout(function () {
+        if (config.reconnectionNum >= config.maxReconnectionNum) { // 最大重连次数
+            clearTimeout(rec);
+            isConnect = false;
+            HeartStop();
+            return;
+        }
+        config.reconnectionNum++;
+        CreateWebsocket();
+    }, config.reconnectionTime);
+}
+exports.Reconnection = Reconnection;
+/**
+ * @description 正常关闭连接
+ * @constructor
+ */
+function CloseWebsocket() {
+    isConnect = false;
+    websock.close(1000);
+}
+exports.CloseWebsocket = CloseWebsocket;
+/**
+ * @description 发送消息
+ * @param data
+ * @constructor
+ */
+function SendMsg(data) {
+    if (!data || data === undefined || data === '')
+        return new Error('发送消息数据必须为真值');
     var _d = JSON.stringify(data);
-    exports.websock.send(_d);
-};
-exports.sendMsg = sendMsg;
-/**
- * @description 监听websocket message消息
- * @param callback (e:any) => any
- */
-var onMessage = function (callback) {
-    if (typeof callback === 'function') {
-        exports.websock.onmessage = function (e) {
-            callback(e);
-        };
+    if (websock.readyState == websock.OPEN) {
+        websock.send(_d);
     }
-};
-exports.onMessage = onMessage;
+    else if (websock.readyState === websock.CONNECTING) {
+        // 连接正在开启状态时，则等待1s后发送
+        setTimeout(function () {
+            SendMsg(_d);
+        }, 1500);
+    }
+    else {
+        // 未开启，等待2s后重新调用
+        setTimeout(function () {
+            SendMsg(_d);
+        }, 2000);
+    }
+}
+exports.SendMsg = SendMsg;
+/**
+ * @description 监听message消息返回
+ * @param callback
+ * @constructor
+ */
+function OnSocMessage(callback) {
+    if (typeof callback !== 'function')
+        return new Error('返回值必须是一个方法');
+    websock.onmessage = function (msg) {
+        var _d = JSON.parse(msg.data);
+        HeartReset();
+        callback(_d);
+    };
+}
+exports.OnSocMessage = OnSocMessage;
+/**
+ * @description 监听连接错误消息
+ * @param callback
+ * @constructor
+ */
+function OnCloseMsg(callback) {
+    if (typeof callback !== 'function')
+        return new Error('返回值必须是一个方法');
+    websock.onclose = function (e) {
+        callback(e);
+    };
+}
+exports.OnCloseMsg = OnCloseMsg;
+/**
+ * @description 开启心跳
+ * @constructor
+ */
+function HeartStart() {
+    config.timeObject = setInterval(function () {
+        if (isConnect)
+            websock.send(JSON.stringify(config.heartbeatData));
+    }, config.timeout);
+}
+exports.HeartStart = HeartStart;
+/**
+ * @description 重置心跳
+ * @constructor
+ */
+function HeartReset() {
+    clearInterval(config.timeObject);
+    HeartStart();
+}
+exports.HeartReset = HeartReset;
+/**
+ * @description 关闭心跳
+ * @constructor
+ */
+function HeartStop() {
+    clearInterval(config.timeObject);
+}
+exports.HeartStop = HeartStop;
 //# sourceMappingURL=index.js.map
