@@ -25,13 +25,14 @@ export declare function SettingsConfig(option: ConfigSelectableType): Error;
  * @param callback
  * @constructor
  */
-export declare function CreateWebsocket(callback?: (isconnect: boolean) => void): Error;
+export declare function CreateWebsocket(callback?: (isconnect: boolean) => void, reconnectionSocket?: Function): Error;
 /**
  * @description 创建websocket连接
  * @param callback
  * @constructor
  */
-export declare function InitWebsocket(callback?: (isconnect: boolean) => void): void;
+export declare function InitWebsocket(callback?: (isconnect: boolean) => void, reconnectionSocket?: Function): void;
+export declare function getWebSocket(): any;
 /**
  * @description 重连
  * @constructor

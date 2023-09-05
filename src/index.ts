@@ -53,14 +53,14 @@ export function SettingsConfig(option: ConfigSelectableType) {
  * @param callback
  * @constructor
  */
-export function CreateWebsocket(callback?: (isconnect: boolean) => void) {
+export function CreateWebsocket(callback?: (isconnect: boolean) => void, reconnectionSocket?: Function) {
   if (callback && typeof callback !== 'function') return new Error('cuowu')
   try {
     InitWebsocket((type) => {
       if (callback) {
         callback(type)
       }
-    })
+    }, reconnectionSocket && reconnectionSocket)
   } catch (e) {
     console.log('尝试连接失败，重连')
     Reconnection()
@@ -72,7 +72,7 @@ export function CreateWebsocket(callback?: (isconnect: boolean) => void) {
  * @param callback
  * @constructor
  */
-export function InitWebsocket(callback?: (isconnect: boolean) => void) {
+export function InitWebsocket(callback?: (isconnect: boolean) => void, reconnectionSocket?: Function) {
   if (config.websocketURL === '') return console.log('未设置连接地址')
   websock = new WebSocket(config.websocketURL)
   websock.onopen = () => {
@@ -84,7 +84,20 @@ export function InitWebsocket(callback?: (isconnect: boolean) => void) {
   }
   websock.onerror = () => {
     // 不是正常关闭, 就重连
-    Reconnection()
+    isConnect = false
+    if(reconnectionSocket) {
+      reconnectionSocket()
+    }else{
+      Reconnection()
+    }
+  }
+}
+
+export function getWebSocket() {
+  if (isConnect) {
+    return websock
+  }else{
+    return new Error('websocket未连接')
   }
 }
 
@@ -128,14 +141,14 @@ export function SendMsg<T, >(data: T) {
     websock.send(_d)
   } else if (websock.readyState === websock.CONNECTING) {
     // 连接正在开启状态时，则等待1s后发送
-    setTimeout(() => {
-      SendMsg(_d)
-    }, 1500)
+    // setTimeout(() => {
+    //   SendMsg(_d)
+    // }, 1500)
   } else {
     // 未开启，等待2s后重新调用
-    setTimeout(() => {
-      SendMsg(_d)
-    }, 2000)
+    // setTimeout(() => {
+    //   SendMsg(_d)
+    // }, 2000)
   }
 }
 

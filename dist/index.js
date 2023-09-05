@@ -3,7 +3,7 @@
  * websocket 封装
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HeartStop = exports.HeartReset = exports.HeartStart = exports.OnCloseMsg = exports.OnSocMessage = exports.SendMsg = exports.CloseWebsocket = exports.Reconnection = exports.InitWebsocket = exports.CreateWebsocket = exports.SettingsConfig = exports.getIsConnect = void 0;
+exports.HeartStop = exports.HeartReset = exports.HeartStart = exports.OnCloseMsg = exports.OnSocMessage = exports.SendMsg = exports.CloseWebsocket = exports.Reconnection = exports.getWebSocket = exports.InitWebsocket = exports.CreateWebsocket = exports.SettingsConfig = exports.getIsConnect = void 0;
 var websock;
 var rec;
 var isConnect = false;
@@ -43,7 +43,7 @@ exports.SettingsConfig = SettingsConfig;
  * @param callback
  * @constructor
  */
-function CreateWebsocket(callback) {
+function CreateWebsocket(callback, reconnectionSocket) {
     if (callback && typeof callback !== 'function')
         return new Error('cuowu');
     try {
@@ -51,7 +51,7 @@ function CreateWebsocket(callback) {
             if (callback) {
                 callback(type);
             }
-        });
+        }, reconnectionSocket && reconnectionSocket);
     }
     catch (e) {
         console.log('尝试连接失败，重连');
@@ -64,7 +64,7 @@ exports.CreateWebsocket = CreateWebsocket;
  * @param callback
  * @constructor
  */
-function InitWebsocket(callback) {
+function InitWebsocket(callback, reconnectionSocket) {
     if (config.websocketURL === '')
         return console.log('未设置连接地址');
     websock = new WebSocket(config.websocketURL);
@@ -77,10 +77,25 @@ function InitWebsocket(callback) {
     };
     websock.onerror = function () {
         // 不是正常关闭, 就重连
-        Reconnection();
+        isConnect = false;
+        if (reconnectionSocket) {
+            reconnectionSocket();
+        }
+        else {
+            Reconnection();
+        }
     };
 }
 exports.InitWebsocket = InitWebsocket;
+function getWebSocket() {
+    if (isConnect) {
+        return websock;
+    }
+    else {
+        return new Error('websocket未连接');
+    }
+}
+exports.getWebSocket = getWebSocket;
 /**
  * @description 重连
  * @constructor
@@ -124,15 +139,15 @@ function SendMsg(data) {
     }
     else if (websock.readyState === websock.CONNECTING) {
         // 连接正在开启状态时，则等待1s后发送
-        setTimeout(function () {
-            SendMsg(_d);
-        }, 1500);
+        // setTimeout(() => {
+        //   SendMsg(_d)
+        // }, 1500)
     }
     else {
         // 未开启，等待2s后重新调用
-        setTimeout(function () {
-            SendMsg(_d);
-        }, 2000);
+        // setTimeout(() => {
+        //   SendMsg(_d)
+        // }, 2000)
     }
 }
 exports.SendMsg = SendMsg;
